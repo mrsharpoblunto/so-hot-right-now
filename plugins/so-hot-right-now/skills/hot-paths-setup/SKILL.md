@@ -12,10 +12,9 @@ It follows each call from a root, so the roots decide which code it checks.
 ## 1. Install
 
 Install the package as a dev dependency with the project's package manager. It includes its own TypeScript 6, so the project can compile with any TypeScript version.
-The package is not on npm yet, so install it from GitHub:
 
 ```sh
-pnpm add -D github:mrsharpoblunto/so-hot-right-now
+pnpm add -D @thestraylight/so-hot-right-now
 npx so-hot-right-now init
 ```
 

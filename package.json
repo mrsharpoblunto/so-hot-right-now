@@ -1,6 +1,6 @@
 {
   "name": "@thestraylight/so-hot-right-now",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A TypeScript checker that finds allocations, closures, string compares, and hash lookups in code that runs on each frame or tick.",
   "keywords": [
     "typescript",
@@ -35,7 +35,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "so-hot-right-now": "./bin/so-hot-right-now.mjs"
+    "so-hot-right-now": "bin/so-hot-right-now.mjs"
   },
   "files": [
     "bin",
@@ -46,7 +46,8 @@
   "scripts": {
     "test": "vitest run",
     "lint": "oxlint --deny-warnings && pnpm format --check",
-    "format": "oxfmt '**/*.{mjs,ts,mts}'"
+    "format": "oxfmt '**/*.{mjs,ts,mts}'",
+    "prepublishOnly": "pnpm test && node scripts/check-version.mjs"
   },
   "dependencies": {
     "picomatch": "^4.0.7",

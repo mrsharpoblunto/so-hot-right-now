@@ -1,6 +1,6 @@
 name: Release
 
-# Push a tag such as v0.1.0 to publish. Set up npm trusted publishing for this workflow first.
+# Push a tag such as v0.2.0 to publish. npm trusted publishing authenticates this workflow.
 on:
   push:
     tags: ["v*"]
@@ -20,7 +20,9 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
           cache: pnpm
+      # Trusted publishing needs npm 11.5.1 or newer. The npm in a Node release can be older.
+      - run: npm install -g npm@latest
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test
       - run: node scripts/check-version.mjs "${GITHUB_REF_NAME#v}"
-      - run: npm publish --provenance --access public
+      # prepublishOnly runs the tests. npm adds the provenance statement.
+      - run: npm publish

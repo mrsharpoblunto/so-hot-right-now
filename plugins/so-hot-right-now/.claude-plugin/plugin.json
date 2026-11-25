@@ -1,9 +1,16 @@
 {
   "name": "so-hot-right-now",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Skills to write, fix, and set up hot path checks for TypeScript code that runs on each frame or tick.",
-  "author": { "name": "Glenn Conner" },
+  "author": {
+    "name": "Glenn Conner"
+  },
   "repository": "https://github.com/mrsharpoblunto/so-hot-right-now",
   "license": "MIT",
-  "keywords": ["typescript", "performance", "hot-path", "lint"]
+  "keywords": [
+    "typescript",
+    "performance",
+    "hot-path",
+    "lint"
+  ]
 }

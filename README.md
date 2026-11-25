@@ -26,11 +26,10 @@ The tags show which code is hot. A reviewer can see that a function runs on each
 
 ## Install
 
-The npm name will be `@thestraylight/so-hot-right-now`, and the command is `so-hot-right-now`.
-The package is not on npm yet. Install it from GitHub:
+The npm name is `@thestraylight/so-hot-right-now`, and the command is `so-hot-right-now`.
 
 ```sh
-pnpm add -D github:mrsharpoblunto/so-hot-right-now
+pnpm add -D @thestraylight/so-hot-right-now
 npx so-hot-right-now init
 ```
 
