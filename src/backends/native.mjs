@@ -122,11 +122,81 @@ export function createNativeAnalysis(typescript, project) {
     getStringType: () => wrapType(native.getStringType()),
   };
 
+  const helpers = createHelpers(ts, checker);
+  const K = SyntaxKind;
+  // The rules ask for the type of a binary operand only for these operators.
+  const typedOperators = new Set([
+    K.PlusToken,
+    K.PlusEqualsToken,
+    K.EqualsEqualsEqualsToken,
+    K.ExclamationEqualsEqualsToken,
+    K.EqualsEqualsToken,
+    K.ExclamationEqualsToken,
+    K.LessThanToken,
+    K.LessThanEqualsToken,
+    K.GreaterThanToken,
+    K.GreaterThanEqualsToken,
+  ]);
+
+  // One request for many nodes costs less than a request for each node. Ask for the types and
+  // symbols that the walk and the rules usually read in a function, so that their single
+  // questions find the answers in the cache. A node that this misses costs a single request.
+  const prefetch = (fn) => {
+    const typeNodes = [];
+    const symbolNodes = [];
+    const wantType = (node) => {
+      if (node !== undefined && !nodeTypes.has(node)) typeNodes.push(node);
+    };
+    const wantSymbol = (node) => {
+      if (node !== undefined && !nodeSymbols.has(node)) symbolNodes.push(node);
+    };
+    const visit = (node) => {
+      if (helpers.isFunctionLike(node) || ts.isTypeNode(node)) return;
+      if (ts.isCallExpression(node)) {
+        for (const argument of node.arguments)
+          if (ts.isIdentifier(argument) || ts.isPropertyAccessExpression(argument))
+            wantType(argument);
+        const callee = node.expression;
+        if (ts.isPropertyAccessExpression(callee) || ts.isElementAccessExpression(callee))
+          wantType(callee.expression);
+        else if (ts.isIdentifier(callee)) wantSymbol(callee);
+      } else if (ts.isElementAccessExpression(node)) {
+        wantType(node.expression);
+        wantType(node.argumentExpression);
+      } else if (ts.isBinaryExpression(node)) {
+        const operator = node.operatorToken.kind;
+        if (typedOperators.has(operator)) {
+          wantType(node.left);
+          wantType(node.right);
+        } else if (operator === K.EqualsToken) {
+          const target = helpers.withoutParentheses(node.left);
+          if (ts.isArrayLiteralExpression(target) || ts.isObjectLiteralExpression(target))
+            wantType(node.right);
+        }
+      } else if (ts.isForOfStatement(node)) wantType(node.expression);
+      else if (ts.isArrayBindingPattern(node) || ts.isObjectBindingPattern(node)) wantType(node);
+      if (ts.isPropertyAccessExpression(node)) wantSymbol(node.name);
+      node.forEachChild(visit);
+    };
+    fn.forEachChild(visit);
+    if (typeNodes.length > 0) {
+      const found = native.getTypeAtLocation(typeNodes);
+      for (let index = 0; index < typeNodes.length; index++)
+        nodeTypes.set(typeNodes[index], wrapType(found[index]));
+    }
+    if (symbolNodes.length > 0) {
+      const found = native.getSymbolAtLocation(symbolNodes);
+      for (let index = 0; index < symbolNodes.length; index++)
+        nodeSymbols.set(symbolNodes[index], wrapSymbol(found[index]));
+    }
+  };
+
   const program = project.program;
   return {
     ts,
     checker,
-    helpers: createHelpers(ts, checker),
+    helpers,
+    prefetch,
     typescriptVersion: version,
     sourceFiles: (include) =>
       program

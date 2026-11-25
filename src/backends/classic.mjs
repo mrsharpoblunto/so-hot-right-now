@@ -14,6 +14,8 @@ export function createClassicAnalysis(ts, program) {
     checker,
     helpers: createHelpers(ts, checker),
     typescriptVersion: ts.version,
+    // The classic checker runs in this process, so a batch saves nothing.
+    prefetch: () => {},
     sourceFiles: (include) =>
       program.getSourceFiles().filter((sourceFile) => include(sourceFile.fileName)),
     isExternalLibrary: (sourceFile) => program.isSourceFileFromExternalLibrary(sourceFile),

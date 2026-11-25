@@ -172,6 +172,16 @@ export function checkHotPaths(analysis, options) {
     return found;
   };
 
+  // Only a property that can hold a function can implement a member that hot code calls. So a
+  // literal of data, such as `{ x: 1 }`, needs no contextual type.
+  const mayHoldFunction = (property) => {
+    if (!property.name || !ts.isIdentifier(property.name)) return false;
+    if (ts.isShorthandPropertyAssignment(property) || isFunctionLike(property)) return true;
+    if (!ts.isPropertyAssignment(property)) return false;
+    const value = withoutParentheses(property.initializer);
+    return ts.isIdentifier(value) || ts.isCallExpression(value) || isFunctionLike(value);
+  };
+
   // An interface or type member has no body. Map each project member to the object literal
   // properties and class members that implement it, so a call through the member reaches them.
   const implementations = () => {
@@ -190,11 +200,11 @@ export function checkHotPaths(analysis, options) {
         }
     };
     const visit = (node) => {
-      if (ts.isObjectLiteralExpression(node)) {
+      if (ts.isObjectLiteralExpression(node) && node.properties.some(mayHoldFunction)) {
         const type = checker.getContextualType(node);
         if (type)
           for (const property of node.properties) {
-            if (!property.name || !ts.isIdentifier(property.name)) continue;
+            if (!mayHoldFunction(property)) continue;
             const implementation = ts.isShorthandPropertyAssignment(property)
               ? checker.getShorthandAssignmentValueSymbol(property)?.valueDeclaration
               : property;
@@ -283,6 +293,7 @@ export function checkHotPaths(analysis, options) {
       report: (node, messageId) => reportAllowed(sourceFile, node, messageId, path),
     };
 
+    analysis.prefetch(owner);
     if (!syntax.hasTag(owner, "hot")) untagged.push(owner);
     for (const hook of hooks) hook.checkFunction?.(owner, context);
 

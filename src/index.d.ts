@@ -79,6 +79,8 @@ export interface Analysis {
   checker: Checker;
   helpers: Helpers;
   typescriptVersion: string;
+  /** Asks for the types and symbols that a function usually needs in one batch. Only the native backend does work. */
+  prefetch(fn: HotFunction): void;
   sourceFiles(include: (fileName: string) => boolean): SourceFile[];
   isExternalLibrary(sourceFile: SourceFile): boolean;
 }
