@@ -1,0 +1,63 @@
+{
+  "name": "so-hot-right-now",
+  "version": "0.1.0",
+  "description": "A TypeScript checker that finds allocations, closures, string compares, and hash lookups in code that runs on each frame or tick.",
+  "keywords": [
+    "typescript",
+    "lint",
+    "performance",
+    "hot-path",
+    "allocation",
+    "garbage-collection",
+    "game",
+    "agent-skills"
+  ],
+  "license": "MIT",
+  "author": "Glenn Conner",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrsharpoblunto/so-hot-right-now.git"
+  },
+  "type": "module",
+  "packageManager": "pnpm@11.5.2",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.mjs"
+    },
+    "./helpers": {
+      "types": "./src/helpers.d.ts",
+      "default": "./src/helpers.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "so-hot-right-now": "./bin/so-hot-right-now.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "docs",
+    "plugins"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "lint": "oxlint --deny-warnings && pnpm format --check",
+    "format": "oxfmt '**/*.{mjs,ts,mts}'"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0"
+  },
+  "dependencies": {
+    "picomatch": "^4.0.7"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.80.0",
+    "oxlint": "^1.86.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.2"
+  }
+}

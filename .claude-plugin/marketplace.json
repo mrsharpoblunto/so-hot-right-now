@@ -1,0 +1,14 @@
+{
+  "name": "so-hot-right-now",
+  "description": "Agent skills for TypeScript hot path checks.",
+  "owner": {
+    "name": "Glenn Conner"
+  },
+  "plugins": [
+    {
+      "name": "so-hot-right-now",
+      "source": "./plugins/so-hot-right-now",
+      "description": "Skills to write, fix, and set up hot path checks for TypeScript code that runs on each frame or tick."
+    }
+  ]
+}
