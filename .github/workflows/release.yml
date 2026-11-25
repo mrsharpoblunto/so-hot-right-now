@@ -1,6 +1,7 @@
 name: Release
 
-# Push a tag such as v0.2.0 to publish. npm trusted publishing authenticates this workflow.
+# Push a tag such as v0.2.0 to stage a release. npm trusted publishing authenticates this workflow.
+# A maintainer approves the staged version with 2FA, so no CI credential can publish alone.
 on:
   push:
     tags: ["v*"]
@@ -25,4 +26,4 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: node scripts/check-version.mjs "${GITHUB_REF_NAME#v}"
       # prepublishOnly runs the tests. npm adds the provenance statement.
-      - run: npm publish
+      - run: npm stage publish

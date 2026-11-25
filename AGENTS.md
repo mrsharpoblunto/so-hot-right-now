@@ -20,6 +20,12 @@ This repo publishes a TypeScript hot path checker to npm, and agent skills for C
 - Keep `typescript` on the 6.x line. TypeScript 7 has no compiler API.
 - Write a comment only to explain why.
 
+# Release
+
+1. Set the same version in `package.json` and `plugins/so-hot-right-now/.claude-plugin/plugin.json`.
+2. Commit, then push a tag such as `v0.2.0`. The release workflow stages the version on npm.
+3. Approve the staged version on npmjs.com, or run `npm stage list` and `npm stage approve <stage-id>`.
+
 # Commands
 
 - `pnpm test`: run the unit tests.
