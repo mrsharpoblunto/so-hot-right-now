@@ -11,7 +11,7 @@ It follows each call from a root, so the roots decide which code it checks.
 
 ## 1. Install
 
-Install the package as a dev dependency with the project's package manager. TypeScript 5 or newer is a peer dependency.
+Install the package as a dev dependency with the project's package manager. It includes its own TypeScript 6, so the project can compile with any TypeScript version.
 The package is not on npm yet, so install it from GitHub:
 
 ```sh

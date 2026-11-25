@@ -29,7 +29,7 @@ The tags show which code is hot. A reviewer can see that a function runs on each
 The package is not on npm yet. Install it from GitHub:
 
 ```sh
-pnpm add -D github:mrsharpoblunto/so-hot-right-now typescript
+pnpm add -D github:mrsharpoblunto/so-hot-right-now
 npx so-hot-right-now init
 ```
 
@@ -41,7 +41,8 @@ npx so-hot-right-now baseline   # Write the current counts to hot-path-baseline.
 npx so-hot-right-now            # Check against the baseline. Put this in your lint script.
 ```
 
-Node 22.18 or newer is necessary. TypeScript 5 or newer is a peer dependency.
+Node 22.18 or newer is necessary.
+The package includes TypeScript 6, because TypeScript 7 has no compiler API. Your project can still compile with TypeScript 7 or `tsgo`.
 
 ## Config
 
@@ -150,12 +151,13 @@ const problems = checkHotPaths(program, { root: process.cwd(), plugins: [presets
 ```
 
 `checkHotPaths` takes a TypeScript `Program`, so you can run it from your own lint script and share one program with other type-aware checks.
+Make the program with `createProgram` from this package, or with TypeScript 6. A program from a different TypeScript version can have different syntax kind numbers.
 
 ## Limits
 
 - The checker reads only TypeScript and JavaScript that the `tsconfig.json` includes.
 - It follows calls that the type checker can resolve. A call through an `any` value or a computed key stops the walk.
-- It does not read a native compiler such as `tsgo`. It needs the `typescript` package.
+- It reads the project with TypeScript 6. A project that needs a TypeScript 7 language feature can get different types.
 
 ## License
 

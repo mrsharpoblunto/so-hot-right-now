@@ -17,6 +17,7 @@ This repo publishes a TypeScript hot path checker to npm, and agent skills for C
 - Do not change a message id. Projects use the ids as baseline keys.
 - Keep the version in `package.json` and `plugins/so-hot-right-now/.claude-plugin/plugin.json` the same.
 - Keep one manifest for both agents. Codex reads the Claude Code marketplace file.
+- Keep `typescript` on the 6.x line. TypeScript 7 has no compiler API.
 - Write a comment only to explain why.
 
 # Commands

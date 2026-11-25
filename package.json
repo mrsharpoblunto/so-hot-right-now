@@ -48,16 +48,13 @@
     "lint": "oxlint --deny-warnings && pnpm format --check",
     "format": "oxfmt '**/*.{mjs,ts,mts}'"
   },
-  "peerDependencies": {
-    "typescript": ">=5.0"
-  },
   "dependencies": {
-    "picomatch": "^4.0.7"
+    "picomatch": "^4.0.7",
+    "typescript": "^6.0.3"
   },
   "devDependencies": {
     "oxfmt": "^0.80.0",
     "oxlint": "^1.86.0",
-    "typescript": "^5.9.3",
     "vitest": "^5.1.2"
   }
 }
