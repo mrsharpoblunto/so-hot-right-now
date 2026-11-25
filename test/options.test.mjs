@@ -1,5 +1,6 @@
 import { checkHotPaths, presets } from "@thestraylight/so-hot-right-now";
 import { expect, it } from "vitest";
+import ts5 from "typescript-5";
 
 import { ecs } from "../examples/ecs-plugin.mjs";
 import { ROOT, createTestProgram } from "./program.mjs";
@@ -74,4 +75,9 @@ declare const world: World;
   const check = () => ids(checkHotPaths(program, { root: ROOT, plugins: [ecs] }));
   expect(check()).toEqual(["worldWrite"]);
   expect(check()).toEqual(["worldWrite"]);
+});
+
+it("rejects a program from another TypeScript version", () => {
+  const program = ts5.createProgram([], { noEmit: true });
+  expect(() => checkHotPaths(program, { root: ROOT })).toThrow("different TypeScript version");
 });

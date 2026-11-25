@@ -1,4 +1,4 @@
-import ts from "typescript";
+import { ts } from "@thestraylight/so-hot-right-now";
 
 import { calledMethod, isFunctionLike, isNamedType } from "@thestraylight/so-hot-right-now/helpers";
 

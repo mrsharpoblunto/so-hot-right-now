@@ -1,4 +1,4 @@
-import type ts from "typescript";
+import ts from "typescript";
 
 export type HotFunction = ts.FunctionLikeDeclaration;
 
@@ -128,6 +128,8 @@ export interface LoadedConfig {
   options: CheckOptions;
 }
 
+/** The TypeScript that the checker uses. Use it in a plugin, and to make a program. */
+export { ts };
 export const DEFAULT_EXCLUDE: string[];
 export const walkerMessages: Record<string, string>;
 export const core: Plugin;

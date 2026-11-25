@@ -6,6 +6,8 @@ Write a project plugin for a rule that only your project needs.
 ## Shape
 
 ```js
+import { ts } from "@thestraylight/so-hot-right-now";
+
 export const myPlugin = {
   name: "my-plugin",
   // The message for each problem id. The baseline uses the ids, so keep them stable.
@@ -26,6 +28,8 @@ export const myPlugin = {
   },
 };
 ```
+
+Import `ts` from this package, not from `typescript`. The checker makes the program with its own TypeScript, and each TypeScript version numbers its type flags differently. A plugin with another version gets wrong type tests and no error.
 
 Each field except `name` is optional. Two plugins cannot use the same message id.
 Give your ids a prefix if you publish the plugin, for example `myPluginSlowCall`.

@@ -151,7 +151,7 @@ const problems = checkHotPaths(program, { root: process.cwd(), plugins: [presets
 ```
 
 `checkHotPaths` takes a TypeScript `Program`, so you can run it from your own lint script and share one program with other type-aware checks.
-Make the program with `createProgram` from this package, or with TypeScript 6. A program from a different TypeScript version can have different syntax kind numbers.
+Make the program with `createProgram` or the `ts` export of this package. Each TypeScript version numbers its type flags differently, so `checkHotPaths` stops with an error for a program from another version.
 
 ## Limits
 

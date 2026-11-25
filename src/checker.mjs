@@ -62,9 +62,23 @@ function memberOf(declaration) {
     : declaration;
 }
 
+// Each TypeScript version can number its syntax kinds and type flags differently. A program
+// from another version gives wrong type tests and no error, so stop before the walk.
+function assertSameTypeScript(program, checker) {
+  const sourceFile = program.getSourceFiles()[0];
+  if (
+    checker.getStringType?.().flags !== ts.TypeFlags.String ||
+    (sourceFile !== undefined && sourceFile.kind !== ts.SyntaxKind.SourceFile)
+  )
+    throw new Error(
+      `The program comes from a different TypeScript version than the checker's TypeScript ${ts.version}. Make the program with createProgram from this package, or with TypeScript ${ts.versionMajorMinor}.`,
+    );
+}
+
 export function checkHotPaths(program, options) {
   const settings = resolveOptions(options, walkerMessages);
   const checker = program.getTypeChecker();
+  assertSameTypeScript(program, checker);
   const syntax = createSyntax(checker, settings.functionHooks);
   const hooks = settings.plugins.map((plugin) => plugin.create?.(program) ?? {});
   const problems = [];
