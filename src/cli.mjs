@@ -1,4 +1,4 @@
-import { cpSync, existsSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,6 +10,8 @@ import { CONFIG_FILES, createProgram, findConfig, loadConfig, readBaseline } fro
 
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const NAME = "so-hot-right-now";
+const PACKAGE = JSON.parse(readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8")).name;
+const SKILLS = path.join(PACKAGE_ROOT, "plugins", "so-hot-right-now", "skills");
 
 const USAGE = `Usage: ${NAME} <command> [options]
 
@@ -29,7 +31,7 @@ Options:
   --help             Show this help.
 `;
 
-const STARTER_CONFIG = `import { defineConfig, presets } from "${NAME}";
+const STARTER_CONFIG = `import { defineConfig, presets } from "${PACKAGE}";
 
 export default defineConfig({
   tsconfig: "tsconfig.json",
@@ -129,13 +131,12 @@ function skillDestinations(values) {
 }
 
 function installSkills(values) {
-  const source = path.join(PACKAGE_ROOT, "plugins", NAME, "skills");
   for (const destination of skillDestinations(values))
-    for (const skill of readdirSync(source)) {
+    for (const skill of readdirSync(SKILLS)) {
       const target = path.join(destination, skill);
       // Remove the old copy, so that a file that an update deletes does not stay.
       rmSync(target, { recursive: true, force: true });
-      cpSync(path.join(source, skill), target, { recursive: true });
+      cpSync(path.join(SKILLS, skill), target, { recursive: true });
       console.log(`Copied ${skill} to ${path.relative(process.cwd(), destination) || "."}.`);
     }
   return 0;

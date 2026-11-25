@@ -100,4 +100,4 @@ Do not add problems to `hot-path-baseline.json`. Lower the counts when you fix p
 ## Project plugins
 
 A plugin adds rules that only one project needs, such as "do not write to the world from render code".
-Read `node_modules/so-hot-right-now/docs/plugins.md` before you write a plugin.
+Read `node_modules/@thestraylight/so-hot-right-now/docs/plugins.md` before you write a plugin.

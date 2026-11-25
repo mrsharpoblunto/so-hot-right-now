@@ -1,5 +1,5 @@
 {
-  "name": "so-hot-right-now",
+  "name": "@thestraylight/so-hot-right-now",
   "version": "0.1.0",
   "description": "A TypeScript checker that finds allocations, closures, string compares, and hash lookups in code that runs on each frame or tick.",
   "keywords": [
@@ -56,5 +56,8 @@
     "oxfmt": "^0.80.0",
     "oxlint": "^1.86.0",
     "vitest": "^5.1.2"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

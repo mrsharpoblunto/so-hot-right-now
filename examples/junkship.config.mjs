@@ -1,6 +1,6 @@
 // The config that gives the same results as the checker in the junkship repo.
 // Copy it to `hot-path.config.mjs` in the project root.
-import { defineConfig, presets } from "so-hot-right-now";
+import { defineConfig, presets } from "@thestraylight/so-hot-right-now";
 
 import { ecs } from "./ecs-plugin.mjs";
 

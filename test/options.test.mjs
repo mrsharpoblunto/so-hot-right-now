@@ -1,4 +1,4 @@
-import { checkHotPaths, presets } from "so-hot-right-now";
+import { checkHotPaths, presets } from "@thestraylight/so-hot-right-now";
 import { expect, it } from "vitest";
 
 import { ecs } from "../examples/ecs-plugin.mjs";

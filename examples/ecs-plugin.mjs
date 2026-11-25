@@ -1,6 +1,6 @@
 import ts from "typescript";
 
-import { calledMethod, isFunctionLike, isNamedType } from "so-hot-right-now/helpers";
+import { calledMethod, isFunctionLike, isNamedType } from "@thestraylight/so-hot-right-now/helpers";
 
 // These World methods change the world version, so each cache keyed on it rebuilds.
 const WORLD_WRITES = new Set([

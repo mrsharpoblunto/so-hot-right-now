@@ -63,7 +63,7 @@ The checker does not enter type nodes, `throw` statements, or `catch` blocks.
 
 ## Helpers
 
-`so-hot-right-now/helpers` exports the type and syntax tests that the presets use. Some examples:
+`@thestraylight/so-hot-right-now/helpers` exports the type and syntax tests that the presets use. Some examples:
 
 - `calledMethod(callee)` gives the method name of `a.b()` or `a["b"]()`.
 - `isNamedType(type, name)` finds the name in a union or a type parameter constraint.

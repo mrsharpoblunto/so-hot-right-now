@@ -1,6 +1,6 @@
 import { beforeAll, expect, it } from "vitest";
 
-import { checkHotPaths, compareWithBaseline, presets } from "so-hot-right-now";
+import { checkHotPaths, compareWithBaseline, presets } from "@thestraylight/so-hot-right-now";
 
 import { ecs } from "../examples/ecs-plugin.mjs";
 import { junkshipRoots } from "../examples/junkship.config.mjs";

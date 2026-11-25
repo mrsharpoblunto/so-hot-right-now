@@ -26,6 +26,7 @@ The tags show which code is hot. A reviewer can see that a function runs on each
 
 ## Install
 
+The npm name will be `@thestraylight/so-hot-right-now`, and the command is `so-hot-right-now`.
 The package is not on npm yet. Install it from GitHub:
 
 ```sh
@@ -48,7 +49,7 @@ The package includes TypeScript 6, because TypeScript 7 has no compiler API. You
 
 ```js
 // hot-path.config.mjs
-import { defineConfig, presets } from "so-hot-right-now";
+import { defineConfig, presets } from "@thestraylight/so-hot-right-now";
 
 export default defineConfig({
   tsconfig: "tsconfig.json",
@@ -144,7 +145,7 @@ Codex reads the Claude Code marketplace file in `.claude-plugin/`, so one manife
 ## API
 
 ```js
-import { checkHotPaths, compareWithBaseline, createProgram, presets } from "so-hot-right-now";
+import { checkHotPaths, compareWithBaseline, createProgram, presets } from "@thestraylight/so-hot-right-now";
 
 const program = createProgram("tsconfig.json");
 const problems = checkHotPaths(program, { root: process.cwd(), plugins: [presets.browser] });
