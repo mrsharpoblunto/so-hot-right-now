@@ -1,6 +1,6 @@
 {
   "name": "@thestraylight/so-hot-right-now",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A TypeScript checker that finds allocations, closures, string compares, and hash lookups in code that runs on each frame or tick.",
   "keywords": [
     "typescript",

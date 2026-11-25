@@ -1,6 +1,6 @@
 {
   "name": "so-hot-right-now",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Skills to write, fix, and set up hot path checks for TypeScript code that runs on each frame or tick.",
   "author": {
     "name": "Glenn Conner"
