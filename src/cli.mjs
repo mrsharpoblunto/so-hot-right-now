@@ -6,7 +6,8 @@ import { parseArgs } from "node:util";
 
 import { compareWithBaseline, countProblems } from "./baseline.mjs";
 import { checkHotPaths } from "./checker.mjs";
-import { CONFIG_FILES, createProgram, findConfig, loadConfig, readBaseline } from "./config.mjs";
+import { CONFIG_FILES, findConfig, loadConfig, readBaseline } from "./config.mjs";
+import { openProject } from "./project.mjs";
 
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const NAME = "so-hot-right-now";
@@ -53,8 +54,12 @@ async function load(values) {
   if (!configPath)
     throw new Error(`Found no ${CONFIG_FILES[0]}. Run \`${NAME} init\` to write one.`);
   const loaded = await loadConfig(configPath);
-  const problems = checkHotPaths(createProgram(loaded.tsconfig), loaded.options);
-  return { loaded, problems };
+  const { analysis, close } = await openProject(loaded.tsconfig);
+  try {
+    return { loaded, problems: checkHotPaths(analysis, loaded.options) };
+  } finally {
+    close();
+  }
 }
 
 function relativeTo(loaded, problem) {

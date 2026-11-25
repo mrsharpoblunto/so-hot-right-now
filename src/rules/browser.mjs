@@ -1,14 +1,4 @@
-import ts from "typescript";
-
-import {
-  READ,
-  accessKind,
-  calledMethod,
-  isStringLiteral,
-  literalName,
-  withoutParentheses,
-} from "../syntax.mjs";
-import { isLibraryDeclaration, resolvedDeclaration, someType, typeName } from "../types.mjs";
+import { READ } from "../helpers.mjs";
 
 // A read of these makes the browser compute the layout in the middle of a frame.
 const LAYOUT_METHODS = new Set(["getBoundingClientRect", "getClientRects", "getComputedStyle"]);
@@ -28,15 +18,6 @@ const LAYOUT_PROPERTIES = new Set([
   "innerText",
 ]);
 
-function isDomType(type) {
-  return someType(type, (part) => {
-    const name = typeName(part);
-    return (
-      name === "Window" || name === "Element" || name === "Document" || name.endsWith("Element")
-    );
-  });
-}
-
 export const browser = {
   name: "browser",
   messages: {
@@ -52,8 +33,26 @@ export const browser = {
       label: "frame",
     },
   ],
-  create(program) {
-    const checker = program.getTypeChecker();
+  create(analysis) {
+    const { ts, checker, helpers } = analysis;
+    const {
+      accessKind,
+      calledMethod,
+      isLibraryDeclaration,
+      isStringLiteral,
+      literalName,
+      resolvedDeclaration,
+      someType,
+      typeName,
+      withoutParentheses,
+    } = helpers;
+    const isDomType = (type) =>
+      someType(type, (part) => {
+        const name = typeName(part);
+        return (
+          name === "Window" || name === "Element" || name === "Document" || name.endsWith("Element")
+        );
+      });
     const isDom = (node) => isDomType(checker.getTypeAtLocation(node));
     return {
       checkNode(node, context) {
@@ -88,7 +87,7 @@ export const browser = {
           if (
             ts.isIdentifier(callee) &&
             LAYOUT_METHODS.has(callee.text) &&
-            isLibraryDeclaration(resolvedDeclaration(checker, node))
+            isLibraryDeclaration(resolvedDeclaration(node))
           )
             report(node, "layout");
           if (LAYOUT_METHODS.has(calledMethod(callee)) && isDom(callee.expression))

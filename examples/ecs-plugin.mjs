@@ -1,7 +1,3 @@
-import { ts } from "@thestraylight/so-hot-right-now";
-
-import { calledMethod, isFunctionLike, isNamedType } from "@thestraylight/so-hot-right-now/helpers";
-
 // These World methods change the world version, so each cache keyed on it rebuilds.
 const WORLD_WRITES = new Set([
   "add",
@@ -25,8 +21,9 @@ export const ecs = {
     worldWrite:
       "Do not change the world from render or input code on each frame. Each change bumps the world version, and each cache keyed on it rebuilds. Change it only when the value changes.",
   },
-  create(program) {
-    const checker = program.getTypeChecker();
+  create(analysis) {
+    const { ts, checker, helpers } = analysis;
+    const { calledMethod, isFunctionLike, isNamedType } = helpers;
     const writes = [];
     return {
       checkSourceFile(sourceFile, context) {

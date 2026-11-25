@@ -1,22 +1,6 @@
-import ts from "typescript";
-
+import { READ, WRITE, normalize } from "./helpers.mjs";
 import { resolveOptions } from "./options.mjs";
-import {
-  READ,
-  WRITE,
-  accessKind,
-  classMember,
-  createSyntax,
-  heritageNames,
-  isFunctionLike,
-  isNested,
-  memberName,
-  normalize,
-  symbolAt,
-  tagText,
-  withoutParentheses,
-} from "./syntax.mjs";
-import { isLibraryDeclaration, resolvedDeclaration } from "./types.mjs";
+import { createSyntax } from "./syntax.mjs";
 
 // The walk owns these messages. The plugins own the rest.
 export const walkerMessages = {
@@ -35,53 +19,46 @@ export const walkerMessages = {
 
 // `// hot-path: allow <reason>` on the line above a problem accepts it. The reason is necessary.
 function allowance(sourceFile, node) {
-  const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
-  if (line === 0) return null;
-  const previous = sourceFile.text
-    .slice(
-      sourceFile.getPositionOfLineAndCharacter(line - 1, 0),
-      sourceFile.getPositionOfLineAndCharacter(line, 0),
-    )
-    .trim();
+  const text = sourceFile.text;
+  const lineStart = text.lastIndexOf("\n", node.getStart(sourceFile) - 1) + 1;
+  if (lineStart === 0) return null;
+  const previous = text.slice(text.lastIndexOf("\n", lineStart - 2) + 1, lineStart).trim();
   const match = /^\/\/ hot-path: allow\b(.*)$/.exec(previous);
   return match ? match[1].trim() : null;
 }
 
-function ownerMatches(classNode, owner) {
-  if (owner.implements !== undefined)
-    return heritageNames(classNode, ts.SyntaxKind.ImplementsKeyword).includes(owner.implements);
-  if (owner.extends !== undefined)
-    return heritageNames(classNode, ts.SyntaxKind.ExtendsKeyword).includes(owner.extends);
-  const name = classNode.name?.text ?? "";
-  return owner.name instanceof RegExp ? owner.name.test(name) : owner.name === name;
-}
-
-function memberOf(declaration) {
-  return ts.isFunctionTypeNode(declaration) && ts.isPropertySignature(declaration.parent)
-    ? declaration.parent
-    : declaration;
-}
-
-// Each TypeScript version can number its syntax kinds and type flags differently. A program
-// from another version gives wrong type tests and no error, so stop before the walk.
-function assertSameTypeScript(program, checker) {
-  const sourceFile = program.getSourceFiles()[0];
-  if (
-    checker.getStringType?.().flags !== ts.TypeFlags.String ||
-    (sourceFile !== undefined && sourceFile.kind !== ts.SyntaxKind.SourceFile)
-  )
-    throw new Error(
-      `The program comes from a different TypeScript version than the checker's TypeScript ${ts.version}. Make the program with createProgram from this package, or with TypeScript ${ts.versionMajorMinor}.`,
-    );
-}
-
-export function checkHotPaths(program, options) {
+export function checkHotPaths(analysis, options) {
   const settings = resolveOptions(options, walkerMessages);
-  const checker = program.getTypeChecker();
-  assertSameTypeScript(program, checker);
-  const syntax = createSyntax(checker, settings.functionHooks);
-  const hooks = settings.plugins.map((plugin) => plugin.create?.(program) ?? {});
+  const { ts, checker, helpers } = analysis;
+  const {
+    accessKind,
+    isFunctionLike,
+    isLibraryDeclaration,
+    resolvedDeclaration,
+    symbolAt,
+    withoutParentheses,
+  } = helpers;
+  const syntax = createSyntax(analysis, settings.functionHooks);
+  const { classMember, heritageNames, isNested, memberName, tagText } = syntax;
+  const hooks = settings.plugins.map((plugin) => plugin.create?.(analysis) ?? {});
   const problems = [];
+  const sourceFiles = analysis.sourceFiles((fileName) =>
+    settings.isProjectFile(settings.relative(fileName)),
+  );
+
+  const ownerMatches = (classNode, owner) => {
+    if (owner.implements !== undefined)
+      return heritageNames(classNode, ts.SyntaxKind.ImplementsKeyword).includes(owner.implements);
+    if (owner.extends !== undefined)
+      return heritageNames(classNode, ts.SyntaxKind.ExtendsKeyword).includes(owner.extends);
+    const name = classNode.name?.text ?? "";
+    return owner.name instanceof RegExp ? owner.name.test(name) : owner.name === name;
+  };
+
+  const memberOf = (declaration) =>
+    ts.isFunctionTypeNode(declaration) && ts.isPropertySignature(declaration.parent)
+      ? declaration.parent
+      : declaration;
 
   const projectFiles = new Map();
   const isProjectSource = (sourceFile) => {
@@ -89,7 +66,7 @@ export function checkHotPaths(program, options) {
     if (result === undefined) {
       result =
         !sourceFile.isDeclarationFile &&
-        !program.isSourceFileFromExternalLibrary(sourceFile) &&
+        !analysis.isExternalLibrary(sourceFile) &&
         settings.isProjectFile(settings.relative(sourceFile.fileName));
       projectFiles.set(sourceFile, result);
     }
@@ -227,14 +204,13 @@ export function checkHotPaths(program, options) {
       if (ts.isClassLike(node))
         for (const clause of node.heritageClauses ?? [])
           for (const heritage of clause.types) {
-            const type = checker.getTypeAtLocation(heritage.expression);
+            const type = checker.getTypeAtLocation(heritage);
             for (const member of node.members)
               if (member.name && ts.isIdentifier(member.name)) add(type, member.name.text, member);
           }
       ts.forEachChild(node, visit);
     };
-    for (const sourceFile of program.getSourceFiles())
-      if (isProjectSource(sourceFile)) visit(sourceFile);
+    for (const sourceFile of sourceFiles) if (isProjectSource(sourceFile)) visit(sourceFile);
     return found;
   };
 
@@ -268,7 +244,7 @@ export function checkHotPaths(program, options) {
     queue.push(node);
   };
 
-  for (const sourceFile of program.getSourceFiles()) {
+  for (const sourceFile of sourceFiles) {
     if (!isProjectSource(sourceFile)) continue;
     const context = {
       checker,
@@ -327,20 +303,19 @@ export function checkHotPaths(program, options) {
             (ts.isIdentifier(argument) || ts.isPropertyAccessExpression(argument)) &&
             checker.getTypeAtLocation(argument).getCallSignatures().length > 0
           )
-            followDeclarations(symbolAt(checker, calleeName(argument))?.declarations, owner);
-        const declaration = resolvedDeclaration(checker, node);
+            followDeclarations(symbolAt(calleeName(argument))?.declarations, owner);
+        const declaration = resolvedDeclaration(node);
         // An interface member such as `level.draw` reaches its implementations.
         if (declaration && !isLibraryDeclaration(declaration))
           followDeclarations([declaration], owner);
-        else
-          followDeclarations(symbolAt(checker, calleeName(node.expression))?.declarations, owner);
+        else followDeclarations(symbolAt(calleeName(node.expression))?.declarations, owner);
       }
       if (
         ts.isPropertyAccessExpression(node) &&
         !(node.parent && ts.isCallExpression(node.parent) && node.parent.expression === node)
       ) {
         const access = accessKind(node);
-        for (const declaration of symbolAt(checker, node.name)?.declarations ?? [])
+        for (const declaration of symbolAt(node.name)?.declarations ?? [])
           for (const accessor of [declaration, ...(implemented.get(declaration) ?? [])])
             if (
               accessor.body &&
@@ -368,7 +343,7 @@ export function checkHotPaths(program, options) {
   };
   for (const hook of hooks) hook.finish?.(graph, finishContext);
 
-  for (const sourceFile of program.getSourceFiles()) {
+  for (const sourceFile of sourceFiles) {
     if (!isProjectSource(sourceFile)) continue;
     const strict = isStrict(sourceFile);
     const visit = (node) => {

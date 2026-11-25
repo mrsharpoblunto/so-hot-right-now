@@ -2,8 +2,6 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import ts from "typescript";
-
 export const CONFIG_FILES = [
   "hot-path.config.mjs",
   "hot-path.config.js",
@@ -47,20 +45,6 @@ export async function loadConfig(configPath) {
       roots: config.roots,
     },
   };
-}
-
-export function createProgram(tsconfig) {
-  const parsed = ts.getParsedCommandLineOfConfigFile(
-    tsconfig,
-    {},
-    {
-      ...ts.sys,
-      onUnRecoverableConfigFileDiagnostic: (diagnostic) => {
-        throw new Error(ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
-      },
-    },
-  );
-  return ts.createProgram(parsed.fileNames, parsed.options);
 }
 
 export function readBaseline(baselinePath) {

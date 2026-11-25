@@ -11,10 +11,10 @@ It follows each call from a root, so the roots decide which code it checks.
 
 ## 1. Install
 
-Install the package as a dev dependency with the project's package manager. It includes its own TypeScript 6, so the project can compile with any TypeScript version.
+Install the package as a dev dependency with the project's package manager. `typescript` is a peer dependency. The checker supports TypeScript 5, 6, and 7, and it uses the version that the project installs.
 
 ```sh
-pnpm add -D @thestraylight/so-hot-right-now
+pnpm add -D @thestraylight/so-hot-right-now typescript
 npx so-hot-right-now init
 ```
 

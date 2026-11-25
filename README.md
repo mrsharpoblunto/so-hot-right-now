@@ -29,7 +29,7 @@ The tags show which code is hot. A reviewer can see that a function runs on each
 The npm name is `@thestraylight/so-hot-right-now`, and the command is `so-hot-right-now`.
 
 ```sh
-pnpm add -D @thestraylight/so-hot-right-now
+pnpm add -D @thestraylight/so-hot-right-now typescript
 npx so-hot-right-now init
 ```
 
@@ -42,7 +42,18 @@ npx so-hot-right-now            # Check against the baseline. Put this in your l
 ```
 
 Node 22.18 or newer is necessary.
-The package includes TypeScript 6, because TypeScript 7 has no compiler API. Your project can still compile with TypeScript 7 or `tsgo`.
+
+## TypeScript versions
+
+`typescript` is a peer dependency. The checker reads the project with the TypeScript version that the project installs, so the types match the project's compiler.
+
+| Project TypeScript | How the checker reads the project |
+| --- | --- |
+| 5.x and 6.x | The compiler API in the `typescript` module. |
+| 7.x and newer | The `typescript/unstable/sync` API. It runs the native compiler in a child process, and the check stops the process when it ends. |
+
+Both backends give the same problems. On a large project, the TypeScript 7 backend can be slower, because each new type question is a call to the child process.
+TypeScript 7 calls its API "unstable". A new TypeScript 7 release can change it before this package supports the change.
 
 ## Config
 
@@ -144,20 +155,24 @@ Codex reads the Claude Code marketplace file in `.claude-plugin/`, so one manife
 ## API
 
 ```js
-import { checkHotPaths, compareWithBaseline, createProgram, presets } from "@thestraylight/so-hot-right-now";
+import { checkHotPaths, openProject, presets } from "@thestraylight/so-hot-right-now";
 
-const program = createProgram("tsconfig.json");
-const problems = checkHotPaths(program, { root: process.cwd(), plugins: [presets.browser] });
+const { analysis, close } = await openProject("tsconfig.json");
+try {
+  const problems = checkHotPaths(analysis, { root: process.cwd(), plugins: [presets.browser] });
+} finally {
+  close();
+}
 ```
 
-`checkHotPaths` takes a TypeScript `Program`, so you can run it from your own lint script and share one program with other type-aware checks.
-Make the program with `createProgram` or the `ts` export of this package. Each TypeScript version numbers its type flags differently, so `checkHotPaths` stops with an error for a program from another version.
+`openProject` picks the backend for the project's TypeScript version.
+To share a TypeScript 5 or 6 program with other type-aware checks, call `createClassicAnalysis(ts, program)`. Pass the `typescript` module that made the program, because each TypeScript version numbers its type flags differently.
+For a TypeScript 7 API project, call `createNativeAnalysis({ sync, ast, version }, project)`.
 
 ## Limits
 
 - The checker reads only TypeScript and JavaScript that the `tsconfig.json` includes.
 - It follows calls that the type checker can resolve. A call through an `any` value or a computed key stops the walk.
-- It reads the project with TypeScript 6. A project that needs a TypeScript 7 language feature can get different types.
 
 ## License
 

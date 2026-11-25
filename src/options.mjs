@@ -3,7 +3,7 @@ import path from "node:path";
 import picomatch from "picomatch";
 
 import { core } from "./rules/core.mjs";
-import { normalize } from "./syntax.mjs";
+import { normalize } from "./helpers.mjs";
 
 export const DEFAULT_EXCLUDE = [
   "**/node_modules/**",

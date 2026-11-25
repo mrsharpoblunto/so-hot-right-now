@@ -6,8 +6,6 @@ Write a project plugin for a rule that only your project needs.
 ## Shape
 
 ```js
-import { ts } from "@thestraylight/so-hot-right-now";
-
 export const myPlugin = {
   name: "my-plugin",
   // The message for each problem id. The baseline uses the ids, so keep them stable.
@@ -17,8 +15,8 @@ export const myPlugin = {
   // Calls that return the function that they receive, such as `useCallback`.
   functionHooks: [],
   // Makes the hooks for one check.
-  create(program) {
-    const checker = program.getTypeChecker();
+  create(analysis) {
+    const { ts, checker, helpers } = analysis;
     return {
       checkFunction(fn, context) {},
       checkNode(node, context) {},
@@ -29,7 +27,7 @@ export const myPlugin = {
 };
 ```
 
-Import `ts` from this package, not from `typescript`. The checker makes the program with its own TypeScript, and each TypeScript version numbers its type flags differently. A plugin with another version gets wrong type tests and no error.
+Do not import `typescript` in a plugin. Use `analysis.ts`, `analysis.checker`, and `analysis.helpers`. The checker reads TypeScript 5 and 6 projects with the classic compiler API, and TypeScript 7 projects with the native API. The analysis gives the right syntax module and checker for each one.
 
 Each field except `name` is optional. Two plugins cannot use the same message id.
 Give your ids a prefix if you publish the plugin, for example `myPluginSlowCall`.
@@ -47,7 +45,7 @@ The checker does not enter type nodes, `throw` statements, or `catch` blocks.
 
 ## Context
 
-- `context.checker` is the TypeScript type checker.
+- `context.checker` is the same checker as `analysis.checker`.
 - `context.report(node, messageId)` records a problem. A `// hot-path: allow <reason>` line above the node accepts it.
 - `context.isStrict` is `true` in a strict file.
 - In `checkFunction` and `checkNode`, `context.owner` is the hot function, and `context.chain` is its call chain from a root.
@@ -65,13 +63,18 @@ The checker does not enter type nodes, `throw` statements, or `catch` blocks.
 
 `create` runs once for each check. Keep the state of a check in its closure, so that two checks do not share it.
 
-## Helpers
+## The analysis
 
-`@thestraylight/so-hot-right-now/helpers` exports the type and syntax tests that the presets use. Some examples:
+`create` gets one analysis for each check:
 
-- `calledMethod(callee)` gives the method name of `a.b()` or `a["b"]()`.
-- `isNamedType(type, name)` finds the name in a union or a type parameter constraint.
-- `isLibraryDeclaration(declaration)` is `true` for a built-in from a `.d.ts` file.
+- `analysis.ts` is the syntax module. Use its `is*` guards, `SyntaxKind`, and `TypeFlags`. For TypeScript 7, it is `typescript/unstable/ast` with the flag enums.
+- `analysis.checker` has only the methods that both backends have, such as `getTypeAtLocation`, `getSymbolAtLocation`, and `getResolvedSignature`. The `Checker` type in `index.d.ts` lists them.
+- `analysis.helpers` has the type and syntax tests that the presets use. Some examples:
+  - `calledMethod(callee)` gives the method name of `a.b()` or `a["b"]()`.
+  - `isNamedType(type, name)` finds the name in a union or a type parameter constraint.
+  - `isLibraryDeclaration(declaration)` is `true` for a built-in from a `.d.ts` file.
+
+Compare type flags only with `analysis.ts.TypeFlags`. The numbers differ between TypeScript versions.
 
 ## Example
 

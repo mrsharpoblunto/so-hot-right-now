@@ -1,23 +1,3 @@
-import ts from "typescript";
-
-import {
-  calledMethod,
-  isAssignmentTarget,
-  isStringLiteral,
-  withoutParentheses,
-} from "../syntax.mjs";
-import {
-  hasMixedNumbers,
-  hasNumericLength,
-  isIndexable,
-  isLibraryDeclaration,
-  isNamedType,
-  isNumberType,
-  isStringType,
-  resolvedDeclaration,
-  typeName,
-} from "../types.mjs";
-
 const ALLOCATING_METHODS = new Set([
   "map",
   "filter",
@@ -67,23 +47,6 @@ const STRING_COMPARE_METHODS = new Set([
   "test",
 ]);
 const PROMISE_METHODS = new Set(["then", "catch", "finally"]);
-const EQUALITY = new Set([
-  ts.SyntaxKind.EqualsEqualsEqualsToken,
-  ts.SyntaxKind.ExclamationEqualsEqualsToken,
-  ts.SyntaxKind.EqualsEqualsToken,
-  ts.SyntaxKind.ExclamationEqualsToken,
-]);
-const ORDERING = new Set([
-  ts.SyntaxKind.LessThanToken,
-  ts.SyntaxKind.LessThanEqualsToken,
-  ts.SyntaxKind.GreaterThanToken,
-  ts.SyntaxKind.GreaterThanEqualsToken,
-]);
-
-function isHashType(type) {
-  const parts = type.isUnion() ? type.types : [type];
-  return parts.some((part) => HASH_TYPES.has(typeName(part)));
-}
 
 export const core = {
   name: "core",
@@ -115,8 +78,40 @@ export const core = {
     mixed:
       "Do not mix numbers with null or undefined in an array that a hot path reads. Use a typed array with a sentinel value.",
   },
-  create(program) {
-    const checker = program.getTypeChecker();
+  create(analysis) {
+    const { ts, checker, helpers } = analysis;
+    const {
+      calledMethod,
+      hasMixedNumbers,
+      hasNumericLength,
+      isAssignmentTarget,
+      isIndexable,
+      isLibraryDeclaration,
+      isNamedType,
+      isNumberType,
+      isStringLiteral,
+      isStringType,
+      resolvedDeclaration,
+      typeName,
+      withoutParentheses,
+    } = helpers;
+    const EQUALITY = new Set([
+      ts.SyntaxKind.EqualsEqualsEqualsToken,
+      ts.SyntaxKind.ExclamationEqualsEqualsToken,
+      ts.SyntaxKind.EqualsEqualsToken,
+      ts.SyntaxKind.ExclamationEqualsToken,
+    ]);
+    const ORDERING = new Set([
+      ts.SyntaxKind.LessThanToken,
+      ts.SyntaxKind.LessThanEqualsToken,
+      ts.SyntaxKind.GreaterThanToken,
+      ts.SyntaxKind.GreaterThanEqualsToken,
+    ]);
+    const isHashType = (type) => {
+      const parts = type.isUnion() ? type.types : [type];
+      return parts.some((part) => HASH_TYPES.has(typeName(part)));
+    };
+
     const typeAt = (node) => checker.getTypeAtLocation(node);
 
     const checkBinary = (node, report) => {
@@ -151,7 +146,7 @@ export const core = {
       if (operator === ts.SyntaxKind.InKeyword) report(node, "hash");
       if (operator === ts.SyntaxKind.EqualsToken) {
         const target = withoutParentheses(node.left);
-        if (ts.isArrayLiteralExpression(target) && hasMixedNumbers(checker, typeAt(node.right)))
+        if (ts.isArrayLiteralExpression(target) && hasMixedNumbers(typeAt(node.right)))
           report(target, "mixed");
       }
     };
@@ -163,7 +158,7 @@ export const core = {
       const receiver = typeAt(callee.expression);
       if (PROMISE_METHODS.has(method) && isNamedType(receiver, "Promise")) report(node, "promise");
       if (isNamedType(receiver, "Console")) report(node, "console");
-      const fromLibrary = isLibraryDeclaration(resolvedDeclaration(checker, node));
+      const fromLibrary = isLibraryDeclaration(resolvedDeclaration(node));
       if (HASH_METHODS.has(method) && isHashType(receiver)) report(node, "hash");
       else if (
         STRING_COMPARE_METHODS.has(method) &&
@@ -197,22 +192,21 @@ export const core = {
           const key = typeAt(node.argumentExpression);
           if (
             isNumberType(key) &&
-            !isIndexable(checker, target) &&
+            !isIndexable(target) &&
             !isStringType(target) &&
-            !hasNumericLength(checker, target, node)
+            !hasNumericLength(target, node)
           )
             report(node, "numberKey");
-          if (hasMixedNumbers(checker, target)) report(node, "mixed");
+          if (hasMixedNumbers(target)) report(node, "mixed");
           if (
             !isStringLiteral(node.argumentExpression) &&
             isStringType(key) &&
-            !isIndexable(checker, target)
+            !isIndexable(target)
           )
             report(node, "hash");
         }
         // A destructuring read is a read of each name.
-        if (ts.isArrayBindingPattern(node) && hasMixedNumbers(checker, typeAt(node)))
-          report(node, "mixed");
+        if (ts.isArrayBindingPattern(node) && hasMixedNumbers(typeAt(node))) report(node, "mixed");
         if (
           (ts.isBindingElement(node) && node.dotDotDotToken) ||
           ((ts.isSpreadElement(node) || ts.isSpreadAssignment(node)) && isAssignmentTarget(node))
@@ -231,8 +225,8 @@ export const core = {
           report(node, "compare");
         if (ts.isForOfStatement(node)) {
           const type = typeAt(node.expression);
-          if (!isIndexable(checker, type)) report(node.expression, "iterator");
-          if (hasMixedNumbers(checker, type)) report(node.expression, "mixed");
+          if (!isIndexable(type)) report(node.expression, "iterator");
+          if (hasMixedNumbers(type)) report(node.expression, "mixed");
         }
         if (
           ts.isSpreadElement(node) &&
