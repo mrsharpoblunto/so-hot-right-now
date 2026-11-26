@@ -16,9 +16,9 @@ Read the `hot-paths` skill for the tags, the rules, and the commands. This skill
 ## Before you start
 
 1. **Roots.** Check that the roots in `hot-path.config.mjs` are the entry points of the loop that you will make faster. Examples are the frame callback, the system `run` method, or the `parse` function.
-2. **Benchmark.** Find a benchmark that runs the loop on fixed inputs, or write one. Read `measure.md` in this skill folder. Make an A/B harness that compares a fixed start build with the current build.
+2. **Benchmark.** Find a benchmark that runs the loop on fixed inputs, or write one. Read `measure.md` in this skill folder. Make a process-separated A/B harness that compares a fixed start build with the current build. Each build runs in its own process.
 3. **Output check.** Make a seeded comparison that runs the start build and the current build on many generated inputs, and compares their output. Read `measure.md`.
-4. **Start build.** Save a copy of the start build. Measure it against itself, so that you know the noise of the benchmark.
+4. **Start build.** Save a copy of the start build. Measure it against itself in each mode, before you measure any change, so that you know the noise band of the benchmark.
 5. **Profile.** Profile the start build, so that you know where the time goes. Use an unminified build, so that the names are real.
 
 ## The loop
@@ -29,7 +29,7 @@ Do these steps for each change:
 2. **Choose a group.** Choose the group that removes the most problems in the functions with the most profile time.
 3. **Redesign.** Change the data model so that the code no longer needs the slow operation. Read `redesign.md` in this skill folder for the usual causes and their redesigns.
 4. **Commit.** Make one commit for each change that you measure.
-5. **Check.** Run the tests and the seeded output comparison.
+5. **Check.** Run the tests, the seeded output comparison, and a functional check of the behavior that you changed. The tests and the harness do not show a silent loss of behavior. In planck.js, an event refactor stopped engine events from firing, and only a functional check found it.
 6. **Measure.** Run the A/B harness against the start build and against the parent commit. Run the checker, and record the count.
 7. **Decide.** Use the rules in "Keep or revert".
 
@@ -41,6 +41,7 @@ After each group, profile again. A redesign moves the cost, so the next large co
 - **A change that is slower in two runs:** find a different fix. Revert it only if you cannot find a better fix.
 - **A commit in the middle of a large redesign:** do not decide on it alone. It can be slower until the redesign is complete. Decide at the end point of the redesign.
 - **A small result:** if the p25-p75 ranges overlap, run the harness again before you decide. If a result is larger than 3%, run it again to confirm it.
+- **A change that helps one mode and hurts the other:** report both modes, and fix the cause. In planck.js, an event refactor helped the large mode but made the small mode 1.7% slower. The cause was a spread of the event map on each `World` creation.
 
 ## Do not take shortcuts
 
@@ -70,6 +71,7 @@ The internal model can change even when the public API cannot.
 - **Adapters for replaced parts.** When a user can replace a method or add an extension, wrap it in an adapter that converts between the public API and the internal model. The adapter can be slower than the default code. Tag it as a user adapter. The internal code stays `@hot`.
 - **Choose at setup.** Choose the default method or the adapter one time, at setup. Put it in a slot. Do not test for a replaced method on each call.
 - **Check the API.** Compare the public type declarations of the start build and the current build. Keep internal parameters, such as an offset, out of the public types.
+- **Check serializers and stored formats.** When you change an internal representation, check each place that reads the internal value, such as a serializer, a deserializer, or a saved file. In planck.js, storing the body type as an integer broke the serializer, which wrote the internal integer where the format needs the public string. The round-trip test caught it.
 - **Check the adapters.** Add a seeded check that a replaced method still gets the same calls and gives the same output.
 
 ## When to stop
@@ -93,7 +95,7 @@ Use the profile for these costs. A problem count that does not change is not a s
 The checker can also lose a call. Suspect a checker gap in these cases:
 
 - **The profile shows a slow function that is not in the report.** Run `report`, and look for the function in the call chains.
-- **A change of the dispatch gives `staleHot` or `staleIgnore` problems.** The checker can no longer follow the call to that function.
+- **A change of the dispatch gives `staleHot` or `staleIgnore` problems.** The checker can no longer follow the call to that function. Treat this as a red flag, not a win. In planck.js, a stored callback removed a closure problem but made 6 hot functions invisible to the checker, so the fix was reverted. If functions that were hot become `staleHot` after your change, revert the change and find a fix that keeps the call visible.
 - **The count goes down by much more than the change explains.** Compare the functions in the call chains before and after the change.
 
 Do not take a lower count as a fix until you have done these checks. Report a checker gap to the so-hot-right-now project, with a small example.
