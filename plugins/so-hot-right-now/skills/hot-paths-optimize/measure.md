@@ -4,28 +4,23 @@ A small speed change is easy to measure wrongly. Use an A/B harness, a known noi
 
 ## The A/B harness
 
-The harness loads two builds in one process. In each round, it times both builds, and it changes their order. It gives the median and the p25-p75 range for each build.
+Run each build in its own process. Do not load two builds in one process to decide.
+
+Two builds in one process can share state. The first build that loads can run faster than the second build. In planck.js, the first-loaded build measured about 20% faster than an identical second build. That is not a result. It is a fault in the harness. Do not use an in-process harness to decide.
+
+Use two files. The worker times one build in one mode. The driver runs the worker for each build, and it changes the order of the runs.
 
 ```js
-// Usage: node ab.mjs <base build> <candidate build> [rounds]
+// bench-one.mjs: time ONE build in ONE mode. Usage: node bench-one.mjs <build> <mode> [rounds]
+// Prints: <median> <p25> <p75> (ms per round)
 import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 import { loadInputs } from "./inputs.mjs";
 
-const [basePath, candidatePath, roundsArg] = process.argv.slice(2);
+const [buildPath, mode, roundsArg] = process.argv.slice(2);
 const rounds = Number(roundsArg ?? 25);
-const inputs = loadInputs();
-
-async function load(path) {
-  // A query string gives each build its own module instance.
-  const module = await import(`${pathToFileURL(resolve(path)).href}?${Math.random()}`);
-  return (input) => module.run(input);
-}
-
-const builds = { base: await load(basePath), candidate: await load(candidatePath) };
-for (const input of inputs)
-  if (JSON.stringify(builds.candidate(input)) !== JSON.stringify(builds.base(input)))
-    throw new Error("The candidate output differs from the base output.");
+const module = await import(pathToFileURL(resolve(buildPath)).href);
+const inputs = loadInputs(mode);
 
 function time(run) {
   const start = process.hrtime.bigint();
@@ -33,21 +28,51 @@ function time(run) {
   return Number(process.hrtime.bigint() - start) / 1e6;
 }
 
-for (const name in builds) time(builds[name]);
-const results = { base: [], candidate: [] };
-for (let round = 0; round < rounds; round++) {
-  const order = round % 2 === 0 ? ["base", "candidate"] : ["candidate", "base"];
-  for (const name of order) results[name].push(time(builds[name]));
-}
+time(module.run); // Warm up, then discard the result.
+const times = [];
+for (let round = 0; round < rounds; round++) times.push(time(module.run));
 const at = (values, q) => values.toSorted((a, b) => a - b)[Math.floor((values.length - 1) * q)];
-const range = (values) => `${at(values, 0.25).toFixed(1)}-${at(values, 0.75).toFixed(1)}`;
-const base = at(results.base, 0.5);
-const candidate = at(results.candidate, 0.5);
-console.log(
-  `base ${base.toFixed(1)} ms (${range(results.base)}), ` +
-    `candidate ${candidate.toFixed(1)} ms (${range(results.candidate)}), ` +
-    `change ${(((candidate - base) / base) * 100).toFixed(1)}%`,
-);
+console.log(`${at(times, 0.5).toFixed(1)} ${at(times, 0.25).toFixed(1)} ${at(times, 0.75).toFixed(1)}`);
+```
+
+```js
+// ab-proc.mjs: run each build in its own process. Usage: node ab-proc.mjs <base build> <candidate build> [runs] [rounds]
+// Prints the median of the run medians for each build and mode, and the change.
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const exec = promisify(execFile);
+const [basePath, candidatePath, runsArg, roundsArg] = process.argv.slice(2);
+const runs = Number(runsArg ?? 3);
+const rounds = Number(roundsArg ?? 25);
+
+async function bench(build, mode) {
+  const { stdout } = await exec(process.execPath, ["bench-one.mjs", build, mode, String(rounds)], {
+    cwd: new URL(".", import.meta.url).pathname,
+  });
+  const [median, p25, p75] = stdout.trim().split(/\s+/).map(Number);
+  return { median, p25, p75 };
+}
+
+const med = (values) => {
+  const s = values.toSorted((a, b) => a - b);
+  return s[Math.floor((s.length - 1) / 2)];
+};
+
+for (const mode of ["large", "small"]) {
+  const baseRuns = [];
+  const candidateRuns = [];
+  for (let i = 0; i < runs; i++) {
+    baseRuns.push(await bench(basePath, mode));
+    candidateRuns.push(await bench(candidatePath, mode));
+  }
+  const base = med(baseRuns.map((r) => r.median));
+  const candidate = med(candidateRuns.map((r) => r.median));
+  console.log(
+    `${mode}: base ${base.toFixed(1)} ms, candidate ${candidate.toFixed(1)} ms, ` +
+      `change ${(((candidate - base) / base) * 100).toFixed(1)}%`,
+  );
+}
 ```
 
 Change `loadInputs` and `module.run` for the project. Set the number of repeats so that each round takes about 200 ms.
@@ -63,8 +88,8 @@ A change can help one mode and not the other. Report both.
 
 ## Noise
 
-- **Know the noise.** Run the start build against itself. The change must be larger than that result.
-- **Know the bias.** Run a build against an exact copy of itself 3 times. If the median change is not near 0, the harness favors one slot. Subtract that bias from each result. A bias of 0.5% adds up when you sum the results of many small commits.
+- **Know the noise.** Run the start build against itself before you measure any change. Do this in each mode. Record the band. A change that is smaller than the band is not a result. In planck.js, the noise band was about 1%: the large mode took about 222 ms per round, and the small mode took about 91 ms per round.
+- **Know the bias.** Run a build against an exact copy of itself 3 times. If the median change is not near 0, the harness favors one slot. Do not subtract the bias from each result. A large bias means that the harness measures its own fault, not the code. Fix the harness. In planck.js, the in-process harness showed about 20% for identical builds. The cause was two module instances in one process. The fix was to run each build in its own process.
 - **A quiet machine.** Do not run builds, tests, or other agents while the harness runs. A busy machine can move the median by 10%.
 - **Overlapping ranges.** If the p25-p75 ranges of the two builds overlap, run the harness again before you decide.
 - **Confirmation.** If a result is larger than 3%, run it again to confirm it.
@@ -73,7 +98,7 @@ A change can help one mode and not the other. Report both.
 
 ## The output check
 
-The tests can miss a change in the output. A seeded comparison finds more:
+The tests can miss a change in the output. A seeded comparison finds more. Run this check for each change, before you read the A/B result. A change that fails this check is not a candidate, no matter what the harness says. In planck.js, the check ran 225 seeded worlds, and the worst difference was 0.
 
 1. Generate many inputs from a fixed seed. Use the characters and structures that the code handles, in random mixes. Use at least 100,000 inputs for a parser.
 2. Run the start build and the current build on each input.
