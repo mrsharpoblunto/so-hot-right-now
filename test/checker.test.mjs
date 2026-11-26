@@ -50,6 +50,7 @@ const cases = [
   ["promise chain", "job.then(Math.abs);", ["promise"]],
   ["integer-keyed object", "count = numbered[count];", ["numberKey"]],
   ["match array index", 'count = "a".match(/a/)!.index!;', ["compare", "regex"]],
+  ["nullable match index", "count = maybeMatch?.[0].length ?? 0;", []],
   ["mixed number array", "count = maybe[0] ?? 0;", ["mixed"]],
   ["gpu object", "device.createBindGroup(layoutDescriptor);", ["gpu"]],
   ["command encoder", "device.createCommandEncoder();", []],
@@ -124,6 +125,7 @@ declare const pair: readonly [number, number | null];
 declare const smallKey: 0 | 1;
 declare const withArguments: { arguments: number };
 declare const brandedKey: number & { readonly brand: unique symbol };
+declare const maybeMatch: RegExpExecArray | null;
 `;
     lines = declarations.split("\n").length;
     source =
@@ -175,6 +177,19 @@ class Named implements Module { prepare = forClass; }
 export const named2 = new Named();
 /** @hot Test root. */ export function prepareAll() {
   for (let index = 0; index < modules.length; index++) modules[index].prepare(index);
+}
+`;
+    files["src/overloads.ts"] = `class Lexer {
+  tokens(text: string): number[];
+  tokens(text: string, into: number[]): number[];
+  tokens(text: string, into: number[] = []) { return { text, into }; }
+}
+function scan(text: string): number;
+function scan(text: number): number;
+function scan(text: string | number) { return { text }; }
+/** @hot Test root. */ export function lex(lexer: Lexer) {
+  lexer.tokens("a");
+  scan(1);
 }
 `;
     files["src/cycle.ts"] = `type F = (() => void) | undefined;
@@ -396,6 +411,20 @@ export class Plain {
       [2, "object"],
       [6, "object"],
       [10, "object"],
+    ]);
+  });
+
+  it("follows a call to an overload signature to the implementation", () => {
+    expect(
+      problems
+        .filter((problem) => problem.fileName.endsWith("/overloads.ts"))
+        .map((problem) => [problem.line, problem.messageId]),
+    ).toEqual([
+      [4, "untagged"],
+      [4, "array"],
+      [4, "object"],
+      [8, "untagged"],
+      [8, "object"],
     ]);
   });
 

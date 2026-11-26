@@ -266,9 +266,15 @@ export function checkHotPaths(analysis, options) {
   }
 
   const implemented = implementations();
+  // A call to an overloaded function resolves to an overload signature, which has no body.
+  const implementationOf = (declaration) =>
+    isFunctionLike(declaration) && !declaration.body && declaration.name
+      ? symbolAt(declaration.name)?.declarations?.find((candidate) => candidate.body)
+      : undefined;
+
   const followDeclarations = (declarations, caller) => {
     for (const declaration of declarations ?? []) {
-      const target = syntax.bodyOf(declaration);
+      const target = syntax.bodyOf(implementationOf(declaration) ?? declaration);
       if (target) enqueue(target, caller);
       for (const implementation of implemented.get(memberOf(declaration)) ?? [])
         enqueue(implementation, caller);

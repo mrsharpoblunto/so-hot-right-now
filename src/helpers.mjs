@@ -139,10 +139,19 @@ export function createHelpers(ts, checker) {
     );
   };
 
-  // An array-like type has a numeric `length`.
+  // An array-like type has a numeric `length`. A nullable receiver such as `match?.[0]` is
+  // array-like when each part that is not nullish is.
   const hasNumericLength = (type, node) => {
-    const length = type.getProperty("length");
-    return length !== undefined && isNumberType(checker.getTypeOfSymbolAtLocation(length, node));
+    const parts = (type.isUnion() ? type.types : [type]).filter((part) => !isNullish(part));
+    return (
+      parts.length > 0 &&
+      parts.every((part) => {
+        const length = part.getProperty("length");
+        return (
+          length !== undefined && isNumberType(checker.getTypeOfSymbolAtLocation(length, node))
+        );
+      })
+    );
   };
 
   const unionParts = (types) => types.flatMap((type) => (type.isUnion() ? type.types : [type]));
