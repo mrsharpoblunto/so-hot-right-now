@@ -13,6 +13,8 @@ The fix in `hot-paths/rules.md` is for one problem. These redesigns are for a mo
 | The code builds the output with `+`, template literals, or `join` in many functions.                            | `string`               | Send the output through one `emit` function, into one buffer for each call of the loop. Tag `emit` as an output function.                                                        |
 | The code looks up values by string keys, such as `table[ch]`.                                                   | `hash`                 | Use a `switch` on the integer, or an array that a dense integer indexes. Keep a keyed map only for keys that come from user data, such as names.                                 |
 
+A native regex can be faster than a scanner in JavaScript. V8 compiles a regex to machine code. For a search over long text, such as a search for the characters to escape, measure the regex and the scanner. Keep the faster one. A regex that tests each position, or each line, is usually slower than a scanner with a first-character dispatch.
+
 ## Dispatch and setup
 
 | Cause                                                                                   | Problems                                                 | Redesign                                                                                                      |
