@@ -179,6 +179,12 @@ export const named2 = new Named();
   for (let index = 0; index < modules.length; index++) modules[index].prepare(index);
 }
 `;
+    files["src/unions.ts"] = `class Html { render() { return { html: 1 }; } }
+class Text { render() { return { text: 1 }; } }
+/** @hot Test root. */ export function render(renderer: Html | Text) {
+  renderer.render();
+}
+`;
     files["src/overloads.ts"] = `class Lexer {
   tokens(text: string): number[];
   tokens(text: string, into: number[]): number[];
@@ -411,6 +417,19 @@ export class Plain {
       [2, "object"],
       [6, "object"],
       [10, "object"],
+    ]);
+  });
+
+  it("follows a call on a union receiver to the method of each member", () => {
+    expect(
+      problems
+        .filter((problem) => problem.fileName.endsWith("/unions.ts"))
+        .map((problem) => [problem.line, problem.messageId]),
+    ).toEqual([
+      [1, "untagged"],
+      [1, "object"],
+      [2, "untagged"],
+      [2, "object"],
     ]);
   });
 

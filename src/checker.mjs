@@ -281,6 +281,8 @@ export function checkHotPaths(analysis, options) {
     }
   };
 
+  const isUnionReceiver = (expression) => checker.getTypeAtLocation(expression).isUnion();
+
   const calleeName = (expression) =>
     ts.isPropertyAccessExpression(expression)
       ? expression.name
@@ -322,10 +324,14 @@ export function checkHotPaths(analysis, options) {
           )
             followDeclarations(symbolAt(calleeName(argument))?.declarations, owner);
         const declaration = resolvedDeclaration(node);
+        const callee = calleeName(node.expression);
         // An interface member such as `level.draw` reaches its implementations.
-        if (declaration && !isLibraryDeclaration(declaration))
+        if (declaration && !isLibraryDeclaration(declaration)) {
           followDeclarations([declaration], owner);
-        else followDeclarations(symbolAt(calleeName(node.expression))?.declarations, owner);
+          // A call on an `A | B` receiver resolves to the signature of one member only.
+          if (callee !== node.expression && isUnionReceiver(node.expression.expression))
+            followDeclarations(symbolAt(callee)?.declarations, owner);
+        } else followDeclarations(symbolAt(callee)?.declarations, owner);
       }
       if (
         ts.isPropertyAccessExpression(node) &&
