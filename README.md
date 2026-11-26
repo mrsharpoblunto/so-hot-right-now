@@ -109,10 +109,11 @@ A plugin adds rules that only your project needs. For example, `examples/ecs-plu
 
 ## Agent skills
 
-The package has two skills in the [Agent Skills](https://agentskills.io) format. Claude Code and Codex both read this format.
+The package has three skills in the [Agent Skills](https://agentskills.io) format. Claude Code and Codex both read this format.
 
 - `hot-paths`: write and fix hot code. It explains the tags, the fix for each problem, and the baseline.
 - `hot-paths-setup`: add the checker to a project. It finds the roots, writes the config, and records the baseline.
+- `hot-paths-optimize`: make a program faster. It gives a measured loop that changes the data model until the main loop runs through hot code, and rules that stop an agent from hiding problems with tags.
 
 ### Copy the skills into the project
 

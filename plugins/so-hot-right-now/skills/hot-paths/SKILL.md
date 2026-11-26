@@ -52,6 +52,7 @@ A closure that hot code creates needs no tag, because the checker already report
 ## Fixes
 
 Read `rules.md` in this skill folder for the fix for each message id.
+If a module has many problems, or if the goal is to make the program faster, read the `hot-paths-optimize` skill. A group of problems usually needs a change to the data model, not a fix to each line.
 These are the most frequent fixes:
 
 - `new`, `object`, `array`: allocate once at module scope or in the constructor. Reuse the object on each call.
