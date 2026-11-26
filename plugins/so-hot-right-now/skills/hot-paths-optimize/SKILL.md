@@ -50,6 +50,7 @@ These shortcuts make the count go down and give no speed:
 - **`@hot` without a review.** Do not tag a function `@hot` until you have read it and fixed it.
 - **A stop after a few commits.** One small commit is not a result. Continue until a stop condition is true.
 - **A "not possible" without a redesign.** Before you say that a problem cannot be fixed, try a different data model for that module. If you still cannot fix it, leave the problem in the report, and give the file, the line, and the reason.
+- **A blocker taken as the end.** A blocker often names the next change to the data model. For example, "the regex needs one contiguous string" means that the code needs scanners that read a line model. Profile, and if the blocker is in the slow code, make that change next.
 
 ## Where a tag is correct
 
