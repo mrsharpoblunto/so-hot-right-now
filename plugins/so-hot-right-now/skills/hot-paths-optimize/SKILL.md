@@ -58,6 +58,7 @@ A tag is correct only for code that the loop must run and that cannot obey the r
 
 - **An output function.** It makes the result that the caller needs, such as a token, a draw command, or the output string. Send all output through a few small functions, so that a few tags cover it. Example: `/** @hotIgnore Output: one token for each block. */`
 - **A user adapter.** It connects user code, or a public API, to the internal model. Example: `/** @hotIgnore User adapter: one string copy for each replaced method call. */`
+  A built-in option, such as a strict or a legacy mode, is not user code. Before you tag an adapter, check which built-in options use it. Give each built-in option its own hot code.
 - **A rare event.** Examples are a load, a resize, or an error, behind a guard in the hot caller.
 - **A platform API that must allocate.** Use an allow comment on that line.
 
@@ -113,3 +114,5 @@ Report both measures for each commit: the A/B change with the p25-p75 ranges, an
 - Tell it not to end its turn before the end point, unless it finds a blocker.
 - Give a large redesign as separate steps, each with its own end point.
 - Measure its result yourself on a quiet machine before you report it.
+- Keep the output check in a file that you own, and give the agent its path. Run it yourself on each result. An agent that writes its own generator tests the cases that it thought of, and it can miss a regression for many rounds.
+- Give the agent the setting for a long task, such as a high reasoning effort. At a low effort, an agent can stop early and keep the old code as a fallback.

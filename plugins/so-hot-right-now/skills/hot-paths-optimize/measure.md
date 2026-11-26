@@ -64,6 +64,7 @@ A change can help one mode and not the other. Report both.
 ## Noise
 
 - **Know the noise.** Run the start build against itself. The change must be larger than that result.
+- **Know the bias.** Run a build against an exact copy of itself 3 times. If the median change is not near 0, the harness favors one slot. Subtract that bias from each result. A bias of 0.5% adds up when you sum the results of many small commits.
 - **A quiet machine.** Do not run builds, tests, or other agents while the harness runs. A busy machine can move the median by 10%.
 - **Overlapping ranges.** If the p25-p75 ranges of the two builds overlap, run the harness again before you decide.
 - **Confirmation.** If a result is larger than 3%, run it again to confirm it.

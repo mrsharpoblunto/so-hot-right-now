@@ -32,6 +32,7 @@ A native regex can be faster than a scanner in JavaScript. V8 compiles a regex t
 | The code makes an object that is the output, such as a token or a draw command.                | `object`              | Make each kind in one factory function. Tag the factory as an output function, and give the limit, such as "one token for each block". |
 | The code copies an array to count or to search it, such as `[...text].length`.                 | `array`, `allocation` | Count or search with an indexed loop.                                                                                                  |
 | The code makes many small objects with the same fields on each frame.                          | `object`              | Keep the fields in typed arrays, one array for each field, that an entity index indexes.                                               |
+| The code builds an output object, and a later step makes it larger, such as a continuation line or an append. | `string`, `allocation`, repeated work | Find the full extent first, and then build each output object one time. Use a structure pass that records ranges, and an output pass that reads them. |
 
 ## Order of work
 
